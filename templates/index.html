@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách giao dịch</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 10px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <h2>📋 Danh sách giao dịch mới nhất</h2>
+    <table>
+        <tr>
+            <th>Thời gian</th>
+            <th>Ngân hàng</th>
+            <th>Số tiền vào (VND)</th>
+            <th>Số tiền ra (VND)</th>
+            <th>Nội dung</th>
+        </tr>
+        {% for tx in transactions %}
+        <tr>
+            <td>{{ tx.transaction_date }}</td>
+            <td>{{ tx.bank_brand_name }}</td>
+            <td>{{ tx.amount_in }}</td>
+            <td>{{ tx.amount_out }}</td>
+            <td>{{ tx.transaction_content }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
