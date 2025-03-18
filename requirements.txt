@@ -1,4 +1,3 @@
 requests
 flask
 gtts
-mpv
