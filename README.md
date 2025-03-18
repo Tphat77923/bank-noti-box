@@ -21,8 +21,8 @@ Bank notification box là một ứng dụng Python giúp bạn theo dõi các g
 ### Cài đặt
 1. **Clone repository** (hoặc tải mã nguồn về):
    ```bash
-   git clone <repo-link>
-   cd <repo-folder>
+   git clone https://github.com/Tphat77923/bank-noti-box.git
+   cd bank-noti-box
    ```
 
 2. **Cài đặt các thư viện cần thiết :**
