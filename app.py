@@ -7,7 +7,7 @@ from gtts import gTTS
 import os
 
 BASE_URL = "https://my.sepay.vn/userapi" #api của sepay
-API_KEY = "KBNF1QYTGF8FZPATS8EKQVSALUPILHGQN95PK1EBX0E7AQJW93HUOZUDTY7MYRRN"  # Thay bằng API của bạn
+API_KEY = "your api key"  # Thay bằng API của bạn
 lim = 10 #giới hạn danh sách giao dịch được lấy
 
 #Thông báo nhận thành công
