@@ -76,7 +76,7 @@ def notify_transaction(tx):
     try:
         tts = gTTS(text=message, lang="vi")
         tts.save("speech.mp3")
-        os.system("mpv ting.mp3 speech.mp3")
+        os.system("mpv ting.mp3 speech.mp3 --no-audio-display")
     
         if os.path.exists("speech.mp3"):
             os.remove("speech.mp3")
