@@ -59,10 +59,6 @@ Bank notification box là một ứng dụng Python giúp bạn theo dõi các g
 - Khi có giao dịch mới với số tiền vào (`amount_in` > 0), ứng dụng sẽ phát thông báo bằng giọng nói.
 - Bạn có thể kiểm tra danh sách giao dịch mới nhất trên giao diện web.
 
-## Lưu ý
-- Đảm bảo có kết nối internet để ứng dụng hoạt động đúng cách.
-- API SePay cần có quyền truy cập hợp lệ.
-
 ## Đóng góp
 Mọi đóng góp đều được hoan nghênh! Hãy gửi pull request hoặc báo cáo lỗi nếu bạn gặp sự cố.
 
