@@ -43,8 +43,9 @@ Bank notification box là một ứng dụng Python giúp bạn theo dõi các g
    - Vào [đây](https://my.sepay.vn/bankaccount) chọn kết nối tài khoản và làm theo hướng dẫn
    - Vào [đây](https://my.sepay.vn/companyapi) chọn Thêm API Access, đặt tên rồi chọn thêm
    - Copy đoạn mã api quay lại mã nguồn đã tải về
-   - Mở file `app.py`
-   - Thay đổi giá trị `your api key` thành API Key của bạn
+   - Thay đổi tên file `.env.example` thành `.env`
+   - Mở file `.env`
+   - Thay đổi giá trị `your_api_key` thành API Key của bạn
 
 5. **Chạy ứng dụng:**
    ```bash

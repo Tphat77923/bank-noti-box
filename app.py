@@ -2,13 +2,13 @@ import requests
 import time
 import socket
 import threading
+from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify
 from gtts import gTTS
 import os
 from datetime import datetime
 
 BASE_URL = "https://my.sepay.vn/userapi" #api của sepay
-API_KEY = "your api key"  # Thay bằng API của bạn
 lim = 10 #giới hạn danh sách giao dịch được lấy
 
 #Thông báo nhận thành công
@@ -16,7 +16,8 @@ completed = "Đã nhận thành công số tiền"
 
 app = Flask(__name__)
 
-
+load_dotenv()
+API_KEY = os.getenv("API_KEY") 
 transactions = []
 last_transaction_id = None 
 
@@ -53,22 +54,22 @@ def get_latest_transactions():
         if data["status"] == 200 and "transactions" in data:
             new_transactions = data["transactions"]
             if not new_transactions: return
-	    now = datetime.now()
+            now = datetime.now()
             formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
-	    print(f"{formatted_time} Ok")
+            print(f"{formatted_time} Ok")
             if last_transaction_id and new_transactions[0]["id"] != last_transaction_id:
-            	if float(new_transactions[0]["amount_in"]) > 0:
+                if float(new_transactions[0]["amount_in"]) > 0:
                    notify_transaction(new_transactions[0])
 
             last_transaction_id = new_transactions[0]["id"]
             transactions = new_transactions
     except requests.RequestException as e:
-	now = datetime.now()
+        now = datetime.now()
         formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
         print(f"{formatted_time} Lỗi API: {str(e)}. Đang thử lại...")
 
 def notify_transaction(tx):
-	
+    
     if float(tx["amount_in"]) == 0: return
     message = (
         f"{completed} {format_amount(tx['amount_in'])} đồng. "
@@ -97,11 +98,11 @@ def update_transactions():
             if is_connected() and is_api_accessible():
                 get_latest_transactions()
             else:
-		now = datetime.now()
+                now = datetime.now()
                 formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
                 print("{formatted_time} 🔴 Mất kết nối, đang kiểm tra lại...")
         except Exception as e:
-	    now = datetime.now()
+            now = datetime.now()
             formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
             print(f"{formatted_time} ⚠️ Lỗi trong luồng nền: {str(e)}")
 
