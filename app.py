@@ -100,7 +100,7 @@ def update_transactions():
             else:
                 now = datetime.now()
                 formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
-                print("{formatted_time} 🔴 Mất kết nối, đang kiểm tra lại...")
+                print(f"{formatted_time} 🔴 Mất kết nối, đang kiểm tra lại...")
         except Exception as e:
             now = datetime.now()
             formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
