@@ -14,6 +14,13 @@ lim = 10 #giới hạn danh sách giao dịch được lấy
 #Thông báo nhận thành công
 completed = "Đã nhận thành công số tiền"
 
+# Link nhạc chuông báo
+ringurl = "https://tiengdong.com/wp-content/uploads/Tieng-ting-www_tiengdong_com.mp3" #link nhạc trên mạng hay file phải có đuôi .mp3
+
+if not ringurl:
+    ringurl = "ting.mp3" #default, do not change here
+
+
 app = Flask(__name__)
 
 load_dotenv()
@@ -23,14 +30,14 @@ last_transaction_id = None
 
 def is_connected():
     try:
-        socket.create_connection(("8.8.8.8", 53), timeout=5)
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
         return True
     except OSError:
         return False
 
 def is_api_accessible():
     try:
-        response = requests.get(BASE_URL, timeout=5)
+        response = requests.get(BASE_URL, timeout=3)
         return response.status_code in [200, 401] 
     except requests.RequestException:
         return False
@@ -56,7 +63,7 @@ def get_latest_transactions():
             if not new_transactions: return
             now = datetime.now()
             formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
-            print(f"{formatted_time} Ok")
+            print(f"{formatted_time} [✓] Ok")
             if last_transaction_id and new_transactions[0]["id"] != last_transaction_id:
                 if float(new_transactions[0]["amount_in"]) > 0:
                    notify_transaction(new_transactions[0])
@@ -74,22 +81,22 @@ def notify_transaction(tx):
     message = (
         f"{completed} {format_amount(tx['amount_in'])} đồng. "
     )
-    print("\n🔔 Giao dịch mới!")
-    print(f"🏦 Ngân hàng: {tx['bank_brand_name']}")
-    print(f"💰 Số tiền vào: {format_amount(tx['amount_in'])} VND")
-    print(f"📅 Thời gian: {tx['transaction_date']}")
-    print(f"📝 Nội dung: {tx['transaction_content']}\n")
+    print("\n[!] Giao dịch mới!")
+    print(f" Ngân hàng: {tx['bank_brand_name']}")
+    print(f" Số tiền vào: {format_amount(tx['amount_in'])} VND")
+    print(f" Thời gian: {tx['transaction_date']}")
+    print(f" Nội dung: {tx['transaction_content']}\n")
     try:
         tts = gTTS(text=message, lang="vi")
         tts.save("speech.mp3")
-        os.system("mpv ting.mp3 speech.mp3 --no-audio-display")
+        os.system(f"mpv {ringurl} speech.mp3 --no-audio-display")
     
         if os.path.exists("speech.mp3"):
             os.remove("speech.mp3")
     except Exception as e:
         now = datetime.now()
         formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
-        print(f"{formatted_time} ⚠️ Lỗi khi phát âm thanh: {str(e)}")
+        print(f"{formatted_time} [!] Lỗi khi phát âm thanh: {str(e)}")
 
 def update_transactions():
     """ Luồng chạy nền để cập nhật giao dịch mỗi 2 giây """
@@ -100,11 +107,11 @@ def update_transactions():
             else:
                 now = datetime.now()
                 formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
-                print(f"{formatted_time} 🔴 Mất kết nối, đang kiểm tra lại...")
+                print(f"{formatted_time} [?] Mất kết nối, đang kiểm tra lại...")
         except Exception as e:
             now = datetime.now()
             formatted_time = now.strftime("[%d/%m/%Y | %H:%M:%S]")
-            print(f"{formatted_time} ⚠️ Lỗi trong luồng nền: {str(e)}")
+            print(f"{formatted_time} [!] Lỗi trong luồng nền: {str(e)}")
 
         time.sleep(2)
 
