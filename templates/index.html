@@ -1,35 +1,512 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh sách giao dịch</title>
+    <title>Wind Maze Demo</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid black; padding: 10px; text-align: center; }
-        th { background-color: #4CAF50; color: white; }
+        :root {
+            color-scheme: only light;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            color: #111111;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            width: 100%;
+            max-width: 960px;
+            padding: 24px 16px 0;
+            text-align: center;
+        }
+        h1 {
+            font-size: clamp(1.8rem, 3vw, 2.8rem);
+            margin: 0 0 8px;
+            letter-spacing: 0.05em;
+        }
+        p.description {
+            margin: 0 auto 16px;
+            max-width: 720px;
+            line-height: 1.5;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            border: 2px solid #111111;
+            padding: 8px 16px;
+            border-radius: 999px;
+            max-width: 420px;
+            margin: 0 auto 18px;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            background: #f8f8f8;
+        }
+        .canvas-wrapper {
+            position: relative;
+            width: min(92vw, 900px);
+            margin-bottom: 24px;
+            border: 4px solid #111111;
+            background: #ffffff;
+            aspect-ratio: 3 / 2;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .instructions {
+            max-width: 720px;
+            margin: 0 auto 32px;
+            text-align: left;
+            padding: 0 16px 24px;
+        }
+        .instructions ul {
+            padding-left: 20px;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.92);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            padding: 24px;
+            font-weight: 600;
+            color: #111111;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        button.primary {
+            border: 2px solid #111111;
+            background: #ffffff;
+            color: #111111;
+            font-weight: 700;
+            padding: 10px 22px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        button.primary:hover,
+        button.primary:focus {
+            background: #111111;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        @media (hover: none) {
+            button.primary:hover,
+            button.primary:focus {
+                transform: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <h2>📋 Danh sách giao dịch mới nhất</h2>
-    <table>
-        <tr>
-            <th>Thời gian</th>
-            <th>Ngân hàng</th>
-            <th>Số tiền vào (VND)</th>
-            <th>Số tiền ra (VND)</th>
-            <th>Nội dung</th>
-        </tr>
-        {% for tx in transactions %}
-        <tr>
-            <td>{{ tx.transaction_date }}</td>
-            <td>{{ tx.bank_brand_name }}</td>
-            <td>{{ tx.amount_in }}</td>
-            <td>{{ tx.amount_out }}</td>
-            <td>{{ tx.transaction_content }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <header>
+        <h1>Wind Maze Challenge</h1>
+        <p class="description">
+            Toggle the fans to push the ball into the hole before time runs out. Each level introduces a new maze and
+            trickier airflow puzzles. Tap or click on a fan to switch it on or off and watch how the wind changes the
+            ball's trajectory.
+        </p>
+        <div class="hud">
+            <span id="levelLabel">Level 1 / 4</span>
+            <span id="timerLabel">Time: 00.0 s</span>
+        </div>
+    </header>
+    <div class="canvas-wrapper">
+        <canvas id="gameCanvas" width="900" height="600" aria-label="Wind Maze gameplay area"></canvas>
+        <div id="overlay" class="overlay" role="alert">
+            <div id="overlayText"></div>
+            <button id="overlayButton" class="primary">Continue</button>
+        </div>
+    </div>
+    <section class="instructions">
+        <h2>How to play</h2>
+        <ul>
+            <li>Fans display the direction of their airflow with an arrow. Green fans are blowing, grey fans are idle.</li>
+            <li>Tap a fan to toggle it. Active fans add wind force to the ball based on their arrow direction.</li>
+            <li>The ball carries momentum &mdash; plan your timing to avoid walls and navigate corners.</li>
+            <li>Reach the hole before time expires to advance. Clearing all four levels completes the demo.</li>
+        </ul>
+    </section>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const levelLabel = document.getElementById('levelLabel');
+        const timerLabel = document.getElementById('timerLabel');
+        const overlay = document.getElementById('overlay');
+        const overlayText = document.getElementById('overlayText');
+        const overlayButton = document.getElementById('overlayButton');
+
+        const BALL_RADIUS = 12;
+        const WALL_COLOR = '#111111';
+        const PATH_COLOR = '#ffffff';
+        const FAN_ON_COLOR = '#2ecc71';
+        const FAN_OFF_COLOR = '#cccccc';
+        const HOLE_COLOR = '#111111';
+
+        const levels = [
+            {
+                timeLimit: 20,
+                ballStart: { x: 120, y: 300 },
+                hole: { x: 760, y: 300, radius: 28 },
+                fans: [
+                    { x: 240, y: 300, dir: { x: 1, y: 0 }, strength: 180 }
+                ],
+                walls: makeBoundaryWalls()
+            },
+            {
+                timeLimit: 28,
+                ballStart: { x: 140, y: 480 },
+                hole: { x: 740, y: 140, radius: 28 },
+                fans: [
+                    { x: 240, y: 480, dir: { x: 1, y: 0 }, strength: 180 },
+                    { x: 520, y: 320, dir: { x: 0, y: -1 }, strength: 200 }
+                ],
+                walls: [
+                    ...makeBoundaryWalls(),
+                    { x: 0, y: 420, w: 660, h: 40 },
+                    { x: 620, y: 160, w: 40, h: 300 },
+                    { x: 300, y: 160, w: 360, h: 40 }
+                ]
+            },
+            {
+                timeLimit: 35,
+                ballStart: { x: 120, y: 520 },
+                hole: { x: 780, y: 100, radius: 28 },
+                fans: [
+                    { x: 220, y: 520, dir: { x: 1, y: 0 }, strength: 180 },
+                    { x: 320, y: 360, dir: { x: 0, y: -1 }, strength: 210 },
+                    { x: 520, y: 220, dir: { x: 1, y: 0 }, strength: 190 },
+                    { x: 640, y: 380, dir: { x: 0, y: 1 }, strength: 150 }
+                ],
+                walls: [
+                    ...makeBoundaryWalls(),
+                    { x: 0, y: 460, w: 540, h: 40 },
+                    { x: 500, y: 200, w: 40, h: 300 },
+                    { x: 260, y: 200, w: 280, h: 40 },
+                    { x: 260, y: 200, w: 40, h: 220 },
+                    { x: 260, y: 380, w: 300, h: 40 },
+                    { x: 640, y: 80, w: 40, h: 340 },
+                    { x: 360, y: 80, w: 280, h: 40 }
+                ]
+            },
+            {
+                timeLimit: 40,
+                ballStart: { x: 120, y: 520 },
+                hole: { x: 760, y: 80, radius: 28 },
+                fans: [
+                    { x: 210, y: 520, dir: { x: 1, y: 0 }, strength: 200 },
+                    { x: 320, y: 360, dir: { x: 0, y: -1 }, strength: 220 },
+                    { x: 420, y: 360, dir: { x: 0, y: 1 }, strength: 150 },
+                    { x: 520, y: 220, dir: { x: 1, y: 0 }, strength: 200 },
+                    { x: 640, y: 380, dir: { x: -1, y: 0 }, strength: 170 },
+                    { x: 720, y: 200, dir: { x: 0, y: -1 }, strength: 190 }
+                ],
+                walls: [
+                    ...makeBoundaryWalls(),
+                    { x: 0, y: 460, w: 520, h: 40 },
+                    { x: 480, y: 260, w: 40, h: 240 },
+                    { x: 240, y: 260, w: 280, h: 40 },
+                    { x: 240, y: 160, w: 40, h: 140 },
+                    { x: 240, y: 160, w: 360, h: 40 },
+                    { x: 600, y: 160, w: 40, h: 240 },
+                    { x: 360, y: 60, w: 280, h: 40 },
+                    { x: 680, y: 60, w: 40, h: 220 },
+                    { x: 520, y: 360, w: 240, h: 40 }
+                ]
+            }
+        ];
+
+        function makeBoundaryWalls() {
+            return [
+                { x: 0, y: 0, w: canvas.width, h: 20 },
+                { x: 0, y: canvas.height - 20, w: canvas.width, h: 20 },
+                { x: 0, y: 0, w: 20, h: canvas.height },
+                { x: canvas.width - 20, y: 0, w: 20, h: canvas.height }
+            ];
+        }
+
+        class Ball {
+            constructor(x, y) {
+                this.position = { x, y };
+                this.velocity = { x: 0, y: 0 };
+                this.radius = BALL_RADIUS;
+            }
+            reset(x, y) {
+                this.position.x = x;
+                this.position.y = y;
+                this.velocity.x = 0;
+                this.velocity.y = 0;
+            }
+            applyForce(force, dt) {
+                this.velocity.x += force.x * dt;
+                this.velocity.y += force.y * dt;
+            }
+            update(dt) {
+                const damping = 0.985;
+                this.velocity.x *= damping;
+                this.velocity.y *= damping;
+                this.position.x += this.velocity.x * dt;
+                this.position.y += this.velocity.y * dt;
+            }
+            draw(ctx) {
+                ctx.fillStyle = '#ff5252';
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = WALL_COLOR;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        class Fan {
+            constructor(x, y, dir, strength) {
+                this.position = { x, y };
+                const magnitude = Math.hypot(dir.x, dir.y) || 1;
+                this.direction = { x: dir.x / magnitude, y: dir.y / magnitude };
+                this.strength = strength;
+                this.radius = 28;
+                this.active = false;
+            }
+            toggle() {
+                this.active = !this.active;
+            }
+            applyForce(ball) {
+                if (!this.active) return { x: 0, y: 0 };
+                return {
+                    x: this.direction.x * this.strength,
+                    y: this.direction.y * this.strength
+                };
+            }
+            containsPoint(x, y) {
+                const dx = x - this.position.x;
+                const dy = y - this.position.y;
+                return Math.hypot(dx, dy) <= this.radius + 6;
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                const angle = Math.atan2(this.direction.y, this.direction.x);
+                ctx.rotate(angle);
+                ctx.fillStyle = this.active ? FAN_ON_COLOR : FAN_OFF_COLOR;
+                ctx.strokeStyle = WALL_COLOR;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(-10, -12);
+                ctx.lineTo(18, 0);
+                ctx.lineTo(-10, 12);
+                ctx.closePath();
+                ctx.fillStyle = WALL_COLOR;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class LevelState {
+            constructor(levelData) {
+                this.timeLimit = levelData.timeLimit;
+                this.remaining = levelData.timeLimit;
+                this.hole = levelData.hole;
+                this.walls = levelData.walls.map(w => ({ ...w }));
+                this.fans = levelData.fans.map(f => new Fan(f.x, f.y, f.dir, f.strength));
+                this.ballStart = { ...levelData.ballStart };
+            }
+        }
+
+        const ball = new Ball(0, 0);
+        let currentLevelIndex = 0;
+        let currentLevel = new LevelState(levels[currentLevelIndex]);
+        let lastTimestamp = null;
+        let running = true;
+
+        function resetLevel(index) {
+            currentLevelIndex = index;
+            currentLevel = new LevelState(levels[currentLevelIndex]);
+            ball.reset(currentLevel.ballStart.x, currentLevel.ballStart.y);
+            levelLabel.textContent = `Level ${currentLevelIndex + 1} / ${levels.length}`;
+            updateTimerLabel();
+            overlay.classList.remove('visible');
+            running = true;
+            lastTimestamp = null;
+        }
+
+        function updateTimerLabel() {
+            timerLabel.textContent = `Time: ${currentLevel.remaining.toFixed(1)} s`;
+        }
+
+        function update(dt) {
+            if (!running) return;
+            currentLevel.remaining -= dt;
+            if (currentLevel.remaining <= 0) {
+                currentLevel.remaining = 0;
+                running = false;
+                showOverlay('Time has run out! Try the level again.', currentLevelIndex);
+            }
+            updateTimerLabel();
+
+            let totalForce = { x: 0, y: 0 };
+            currentLevel.fans.forEach(fan => {
+                const force = fan.applyForce(ball);
+                totalForce.x += force.x;
+                totalForce.y += force.y;
+            });
+
+            const mass = 1; // simple unit mass
+            ball.applyForce({ x: totalForce.x / mass, y: totalForce.y / mass }, dt);
+            ball.update(dt);
+
+            resolveCollisions(ball, currentLevel.walls);
+            checkHole();
+        }
+
+        function resolveCollisions(ball, walls) {
+            for (const wall of walls) {
+                const nearestX = clamp(ball.position.x, wall.x, wall.x + wall.w);
+                const nearestY = clamp(ball.position.y, wall.y, wall.y + wall.h);
+                const dx = ball.position.x - nearestX;
+                const dy = ball.position.y - nearestY;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < ball.radius * ball.radius) {
+                    const dist = Math.sqrt(distSq) || 0.0001;
+                    const overlap = ball.radius - dist;
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    ball.position.x += nx * overlap;
+                    ball.position.y += ny * overlap;
+                    const dot = ball.velocity.x * nx + ball.velocity.y * ny;
+                    ball.velocity.x -= 1.8 * dot * nx;
+                    ball.velocity.y -= 1.8 * dot * ny;
+                }
+            }
+        }
+
+        function clamp(val, min, max) {
+            return Math.max(min, Math.min(max, val));
+        }
+
+        function checkHole() {
+            const dx = ball.position.x - currentLevel.hole.x;
+            const dy = ball.position.y - currentLevel.hole.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < currentLevel.hole.radius - 6) {
+                running = false;
+                if (currentLevelIndex === levels.length - 1) {
+                    showOverlay('Congratulations! You mastered all four levels.', null, true);
+                } else {
+                    showOverlay('Level complete! Ready for the next challenge?', currentLevelIndex + 1);
+                }
+            }
+        }
+
+        function showOverlay(message, nextLevelIndex = null, finished = false) {
+            overlayText.textContent = message;
+            overlay.classList.add('visible');
+            overlayButton.textContent = finished ? 'Restart from Level 1' : 'Continue';
+            overlayButton.onclick = () => {
+                if (finished) {
+                    resetLevel(0);
+                } else if (nextLevelIndex !== null) {
+                    resetLevel(nextLevelIndex);
+                } else {
+                    resetLevel(currentLevelIndex);
+                }
+            };
+        }
+
+        function render() {
+            ctx.fillStyle = PATH_COLOR;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw hole
+            ctx.fillStyle = HOLE_COLOR;
+            ctx.beginPath();
+            ctx.arc(currentLevel.hole.x, currentLevel.hole.y, currentLevel.hole.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw walls
+            ctx.fillStyle = WALL_COLOR;
+            currentLevel.walls.forEach(wall => {
+                ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+            });
+
+            // Draw fans
+            currentLevel.fans.forEach(fan => fan.draw(ctx));
+
+            // Draw ball on top of walls
+            ball.draw(ctx);
+
+            // Draw hole highlight circle
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(currentLevel.hole.x, currentLevel.hole.y, currentLevel.hole.radius - 6, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function gameLoop(timestamp) {
+            if (lastTimestamp === null) lastTimestamp = timestamp;
+            const delta = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+            const dt = Math.min(delta, 0.05);
+            update(dt);
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('click', handlePointer, { passive: true });
+        canvas.addEventListener('touchstart', (event) => {
+            const touch = event.changedTouches[0];
+            handlePointer(touch);
+        }, { passive: true });
+
+        function handlePointer(event) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+            for (const fan of currentLevel.fans) {
+                if (fan.containsPoint(x, y)) {
+                    fan.toggle();
+                    break;
+                }
+            }
+        }
+
+        function updateOverlayScale() {
+            overlay.style.fontSize = `${Math.max(16, canvas.getBoundingClientRect().width * 0.028)}px`;
+        }
+
+        window.addEventListener('resize', updateOverlayScale);
+
+        resetLevel(0);
+        updateOverlayScale();
+        requestAnimationFrame(gameLoop);
+    </script>
 </body>
 </html>
