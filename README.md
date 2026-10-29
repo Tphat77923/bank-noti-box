@@ -10,7 +10,7 @@ Bank notification box là một ứng dụng Python giúp bạn theo dõi các g
 - Chạy nền liên tục, cập nhật giao dịch mỗi 2 giây.
 
 > [!WARNING]
-> Hiện tại Sepay hỗ trợ gói free (50 giao dịch/tháng) với các ngân hàng như : VPBank, ACB, VietinBank, MBBank, BIDV, MSB, TPBank, KienLongBank, OCB. Nếu muốn thì bạn có thể nâng gói cao hơn để có thể trải nghiệm.
+> Hiện tại Sepay hỗ trợ gói free (50 giao dịch/tháng) với các ngân hàng như : VPBank, ACB, VietinBank,VietcomBank, MBBank, BIDV, MSB, TPBank, KienLongBank, OCB, SacomBank, ShinhanBank. Nếu muốn thì bạn có thể nâng gói cao hơn để có thể trải nghiệm.
 
 ## Cách cài đặt
 ### Yêu cầu
